@@ -8,6 +8,8 @@ import os
 from dotenv import load_dotenv
 from libs.Bitkub.App import Bitkub
 from libs.Tradingview.Recommendation import Recommendation, TimeInterval
+from libs.Notifications.Line import Line
+
 import firebase_admin
 from firebase_admin import credentials, db
 
@@ -78,21 +80,20 @@ def main():
         last = bitkub.last_price(r['symbol'])
         last_price = float(last['last'])
         last_percent = float(last['percentChange'])
-        msg = f"""SYMBOL: {r['symbol']}\nPRICE: {last_price}\nACT.: BUY\nTIMEFRAME: {','.join(r['timeframe'])}\nPERCENT: {last_percent}%\nAT: {str(datetime.datetime.now())[:19]}"""
-        print(msg)
-
-        # บันทึกข้อมูลใน firebase
-        if last_price < 2:
-            interest_db = db.reference(
-                f"crypto/interesting/{r['symbol']}/{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}")
-            interest_db.set({
-                "percent": last_percent,
-                "symbol": r["symbol"],
-                "trend": "UP",
-                "timeframe": r['timeframe'],
-                "last_price": last_price,
-                "last_update": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            })
+        if last_percent < 2:
+            msg = f"""SYMBOL: {r['symbol']}\nPRICE: {last_price}\nACT.: BUY\nTIMEFRAME: {','.join(r['timeframe'])}\nPERCENT: {last_percent}%\nAT: {str(datetime.datetime.now())[:19]}"""
+            if Line().notifications(msg):
+                # บันทึกข้อมูลใน firebase
+                interest_db = db.reference(f"crypto/interesting/{r['symbol']}/{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}")
+                interest_db.set({
+                    "symbol": r["symbol"],
+                    "trend": "UP",
+                    "timeframe": r['timeframe'],
+                    "last_price": last_price,
+                    "percent": last_percent,
+                    "last_update": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                })
+            print(msg)
 
         print("\n")
         i += 1

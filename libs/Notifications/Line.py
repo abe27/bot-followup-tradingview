@@ -15,8 +15,6 @@ class Line:
             'Content-Type': 'application/x-www-form-urlencoded'
         }
 
-        print(payload.encode('utf-8'))
-        print(payload)
         response = requests.request(
             "POST", url, headers=headers, data=payload.encode('utf-8'))
 

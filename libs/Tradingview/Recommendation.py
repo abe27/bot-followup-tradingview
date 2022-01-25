@@ -15,16 +15,48 @@ class TimeInterval:
 
     def get_interval(self):
         list_of_intervals = [
-            self.INTERVAL_30_MINUTES,
-            self.INTERVAL_1_HOUR,
+            # self.INTERVAL_30_MINUTES,
+            # self.INTERVAL_1_HOUR,
             self.INTERVAL_2_HOURS,
             self.INTERVAL_4_HOURS,
             self.INTERVAL_1_DAY,
-            # self.INTERVAL_1_WEEK,
-            # self.INTERVAL_1_MONTH,
+            self.INTERVAL_1_WEEK,
+            self.INTERVAL_1_MONTH,
         ]
 
         return list_of_intervals
+
+    def get_thai_language(self, time_interval):
+        if time_interval == self.INTERVAL_1_MINUTE:
+            return '1นาที'
+
+        elif time_interval == self.INTERVAL_5_MINUTES:
+            return '5นาที'
+
+        elif time_interval == self.INTERVAL_15_MINUTES:
+            return '15นาที'
+
+        elif time_interval == self.INTERVAL_30_MINUTES:
+            return '30นาที'
+
+        elif time_interval == self.INTERVAL_1_HOUR:
+            return '1ชั่วโมง'
+
+        elif time_interval == self.INTERVAL_2_HOURS:
+            return '2ชั่วโมง'
+
+        elif time_interval == self.INTERVAL_4_HOURS:
+            return '4ชั่วโมง'
+
+        elif time_interval == self.INTERVAL_1_DAY:
+            return '1วัน'
+
+        elif time_interval == self.INTERVAL_1_WEEK:
+            return '1สัปดาห์'
+
+        elif time_interval == self.INTERVAL_1_MONTH:
+            return '1เดือน'
+
 
 
 class Recommendation:

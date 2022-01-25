@@ -9,9 +9,7 @@ from dotenv import load_dotenv
 from libs.Bitkub.App import Bitkub
 from libs.Tradingview.Recommendation import Recommendation, TimeInterval
 from libs.Notifications.Line import Line
-
-import firebase_admin
-from firebase_admin import credentials, db
+import mysql.connector
 
 
 # initialize env
@@ -24,16 +22,17 @@ API_TIMEFRAME = os.getenv('API_BITKUB_TIMEFRAME')
 
 bitkub = Bitkub()
 
-# Fetch the service account key JSON file contents
-cred = credentials.Certificate('keys.json')
-
-# Initialize the app with a service account, granting admin privileges
-firebase_admin.initialize_app(cred, {
-    'databaseURL': os.getenv('API_FIREBASE_URL')
-})
+# initialize mysql db
+db = mysql.connector.connect(
+    host="localhost",
+    user="root",
+    password="",
+    database='marketcap'
+)
 
 def main():
     # Use a breakpoint in the code line below to debug your script.
+    listSymbol = []
     balance = bitkub.balance()
     # Show Assets in Account!
     print(balance[0]['message'])
@@ -52,7 +51,7 @@ def main():
     while i < len(symbols):
         __symbol = symbols[i]
         # Start Loop with Time Interval
-        percent_loop = int(((i + 1) * len(symbols)) / 100)
+        percent_loop = int(((i + 1) * 100) / (len(symbols)))
         print(f"\nStart Loop {__symbol}({percent_loop}%) with Time Interval")
         __interval = []
         symbol_count = 0
@@ -73,36 +72,54 @@ def main():
         print(f"+++++++++++++++ END ++++++++++++++++++++\n")
         i += 1
 
-    print(f'total: {percent_loop}%')
+    print(f'total: {percent_loop}%\n')
+
+    # Add mysql cursor
+    cursor = db.cursor()
     i = 0
     while i < len(docs):
         r = docs[i]
         last = bitkub.last_price(r['symbol'])
         last_price = float(last['last'])
         last_percent = float(last['percentChange'])
-        if last_percent < 2:
-            msg = f"""SYMBOL: {r['symbol']}\nPRICE: {last_price}\nACT.: BUY\nTIMEFRAME: {','.join(r['timeframe'])}\nPERCENT: {last_percent}%\nAT: {str(datetime.datetime.now())[:19]}"""
-            if Line().notifications(msg):
-                # บันทึกข้อมูลใน firebase
-                interest_db = db.reference(f"crypto/interesting/{r['symbol']}/{datetime.datetime.now().strftime('%Y%m%d%H%M%S')}")
-                interest_db.set({
-                    "symbol": r["symbol"],
-                    "trend": "UP",
-                    "timeframe": r['timeframe'],
-                    "last_price": last_price,
-                    "percent": last_percent,
-                    "last_update": datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                })
-            print(msg)
+        weeks = []
+        for a in r['timeframe']:
+            w = TimeInterval().get_thai_language(a)
+            weeks.append(w)
 
-        print("\n")
+        time_frame = str(','.join(weeks))
+
+        if last_percent < 2:
+            # msg = f"SYMBOL: {r['symbol']}\nPRICE: {last_price}\nTREND: BUY\nTIMEFRAME: {time_frame}\nPERCENT: {last_percent}%\nAT: {str(datetime.datetime.now())[:19]}"
+            msg = f"\nเหรียญ: {r['symbol']}\nราคาปัจจุบัน: {last_price:,}บาท\nเปอร์เซ็นต์: {last_percent}\nช่วงเวลา: {time_frame}\nสถานะ: BUY\n"
+            # บันทึกข้อมูลใน mysql
+            sql = f"INSERT INTO tbt_interesting(id, symbol, trend, timeframe, last_price, percent, is_check, last_update)VALUES(uuid(), '{r['symbol']}', 'BUY', '{time_frame}', {last_price}, {last_percent}, 0, CURRENT_TIMESTAMP);"
+            cursor.execute(sql)
+            print(cursor.rowcount, "record inserted.")
+            # Line().notifications(msg)
+            print(msg)
+            # Append Symbol To ListSymbol
+            listSymbol.append(r["symbol"])
+
         i += 1
+
+    print(f"END LOAD: ({percent_loop})%\n")
+    # Commit data
+    db.commit()
+    return listSymbol
+
+def subscribe(symbols):
+    interest_db = db.reference(f"crypto/interesting/")
+    snapshot = interest_db.child(symbols[0])
+    print(snapshot.order_by_key().get())
 
 
 
 # Press the green button in the gutter to run the script.
 if __name__ == '__main__':
-    main()
+    # After run main process
+    list_symbol = main()
+    subscribe(list_symbol)
     sys.exit(0)
 
 # See PyCharm help at https://www.jetbrains.com/help/pycharm/

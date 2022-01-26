@@ -8,7 +8,8 @@ import os
 from dotenv import load_dotenv
 from libs.Bitkub.App import Bitkub
 from libs.Tradingview.Recommendation import Recommendation, TimeInterval
-from libs.Notifications.Line import Line
+from libs.Helpers.Helper import Helper
+# from libs.Notifications.Line import Line
 import mysql.connector
 
 
@@ -21,6 +22,7 @@ API_CURRENCY = os.getenv('API_BITKUB_CURRENCY')
 API_TIMEFRAME = os.getenv('API_BITKUB_TIMEFRAME')
 
 bitkub = Bitkub()
+helper = Helper()
 
 # initialize mysql db
 db = mysql.connector.connect(
@@ -39,6 +41,7 @@ def main():
 
     # Get Symbols from Bitkub
     symbols = bitkub.symbols()
+    helper.export_json('exports/assets.json', symbols)
     # print(list(symbols))
 
     # Get Recommendation from tradingview
